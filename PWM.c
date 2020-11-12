@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdbool.h>
 #include "tm4c123gh6pm.h"
 
 #define RED_LED_MASK 2
@@ -37,6 +38,12 @@
 // Initialize PWM for on-board LED's
 void initLEDPWM()
 {
+    // Configure HW to work with 16 MHz XTAL, PLL enabled, sysdivider of 5, creating system clock of 40 MHz
+    SYSCTL_RCC_R = SYSCTL_RCC_XTAL_16MHZ | SYSCTL_RCC_OSCSRC_MAIN | SYSCTL_RCC_USESYSDIV | (4 << SYSCTL_RCC_SYSDIV_S);
+
+    // Set GPIO ports to use APB (not needed since default configuration -- for clarity)
+    SYSCTL_GPIOHBCTL_R = 0;
+
     // Enable clocks
     SYSCTL_RCGCPWM_R |= SYSCTL_RCGCPWM_R1;
     SYSCTL_RCGCGPIO_R |= SYSCTL_RCGCGPIO_R5;
@@ -47,8 +54,8 @@ void initLEDPWM()
     GPIO_PORTF_DR2R_R |= RED_LED_MASK | BLUE_LED_MASK | GREEN_LED_MASK;                      // set drive strength to 2mA
     GPIO_PORTF_DEN_R |= RED_LED_MASK | BLUE_LED_MASK | GREEN_LED_MASK;                       // enable digital
     GPIO_PORTF_AFSEL_R |= RED_LED_MASK | BLUE_LED_MASK | GREEN_LED_MASK;                     // select auxilary function
-    GPIO_PORTB_PCTL_R &= GPIO_PCTL_PF1_M | GPIO_PCTL_PF2_M |GPIO_PCTL_PF3_M;                      // enable PWM
-    GPIO_PORTB_PCTL_R |= GPIO_PCTL_PF1_M1PWM5 | GPIO_PCTL_PF1_M1PWM6 | GPIO_PCTL_PF1_M1PWM7;
+    GPIO_PORTF_PCTL_R &= (GPIO_PCTL_PF1_M | GPIO_PCTL_PF2_M |GPIO_PCTL_PF3_M);                      // enable PWM
+    GPIO_PORTF_PCTL_R |= GPIO_PCTL_PF1_M1PWM5 | GPIO_PCTL_PF2_M1PWM6 | GPIO_PCTL_PF3_M1PWM7;
 
     // Configure PWM module 1 to drive on-board RGB LEDs
     // RED   on M1PWM5 (PF1), M1PWM2B
@@ -89,6 +96,20 @@ void setLEDPWM(uint8_t rgb, uint8_t cmpb)
 
     else if (rgb == 3)
         PWM1_3_CMPB_R = cmpb;
+}
+
+void main()
+{
+    uint8_t cmpb = 254;
+    initLEDPWM();
+    while (true)
+    {
+        setLEDPWM(1, 254);
+        cmpb--;
+
+        if(cmpb == 0)
+            cmpb = 254;
+    }
 }
 
 
